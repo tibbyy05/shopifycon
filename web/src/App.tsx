@@ -2,12 +2,18 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./lib/supabase";
 import { SignIn } from "./components/SignIn";
-import { ConnectStore } from "./components/ConnectStore";
+import { Overview } from "./components/Overview";
 import { ExceptionList } from "./components/ExceptionList";
 import { ExceptionDrawer } from "./components/ExceptionDrawer";
-import type { ExceptionRow, ExceptionStatus, Shop } from "./types";
+import type {
+  ExceptionRow,
+  ExceptionStatus,
+  RecentException,
+  Shop,
+} from "./types";
 
 type StatusFilter = ExceptionStatus | "all";
+type Page = "overview" | "exceptions";
 
 const FILTERS: { key: StatusFilter; label: string }[] = [
   { key: "open", label: "Open" },
@@ -19,16 +25,22 @@ const FILTERS: { key: StatusFilter; label: string }[] = [
 const EXCEPTION_COLUMNS =
   "id, shop_id, rule_id, resource_type, resource_id, severity, status, details, first_seen_at, resolved_at";
 
+const DAY_MS = 86_400_000;
+
 function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [authReady, setAuthReady] = useState(false);
+  const [page, setPage] = useState<Page>("overview");
   const [shops, setShops] = useState<Shop[]>([]);
   const [exceptions, setExceptions] = useState<ExceptionRow[]>([]);
+  const [recent, setRecent] = useState<RecentException[]>([]);
   const [counts, setCounts] = useState<Record<ExceptionStatus, number>>({
     open: 0,
     ack: 0,
     resolved: 0,
   });
+  const [highOpen, setHighOpen] = useState(0);
+  const [resolved7d, setResolved7d] = useState(0);
   const [filter, setFilter] = useState<StatusFilter>("open");
   const [loading, setLoading] = useState(false);
   const [live, setLive] = useState(false);
@@ -62,6 +74,7 @@ function App() {
       orgReady.current = true;
     }
 
+    const now = Date.now();
     let q = supabase
       .from("exceptions")
       .select(EXCEPTION_COLUMNS)
@@ -69,22 +82,41 @@ function App() {
       .limit(200);
     if (filter !== "all") q = q.eq("status", filter);
 
-    const [shopsRes, excRes, ...countRes] = await Promise.all([
-      supabase
-        .from("shops")
-        .select("id, shop_domain, installed_at, uninstalled_at")
-        .order("installed_at", { ascending: false }),
-      q,
-      ...(["open", "ack", "resolved"] as const).map((s) =>
+    const [shopsRes, excRes, recentRes, highRes, resolvedRes, ...countRes] =
+      await Promise.all([
+        supabase
+          .from("shops")
+          .select("id, shop_domain, installed_at, uninstalled_at")
+          .order("installed_at", { ascending: false }),
+        q,
+        supabase
+          .from("exceptions")
+          .select("rule_id, severity, status, first_seen_at")
+          .gte("first_seen_at", new Date(now - 14 * DAY_MS).toISOString())
+          .limit(1000),
         supabase
           .from("exceptions")
           .select("id", { count: "exact", head: true })
-          .eq("status", s),
-      ),
-    ]);
+          .eq("status", "open")
+          .eq("severity", "high"),
+        supabase
+          .from("exceptions")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "resolved")
+          .gte("resolved_at", new Date(now - 7 * DAY_MS).toISOString()),
+        ...(["open", "ack", "resolved"] as const).map((s) =>
+          supabase
+            .from("exceptions")
+            .select("id", { count: "exact", head: true })
+            .eq("status", s),
+        ),
+      ]);
 
     setShops((shopsRes.data as Shop[]) ?? []);
     setExceptions((excRes.data as unknown as ExceptionRow[]) ?? []);
+    setRecent((recentRes.data as RecentException[]) ?? []);
+    setHighOpen(highRes.count ?? 0);
+    setResolved7d(resolvedRes.count ?? 0);
     setCounts({
       open: countRes[0]?.count ?? 0,
       ack: countRes[1]?.count ?? 0,
@@ -122,9 +154,7 @@ function App() {
 
   // Keep the drawer in sync when its row changes underneath it.
   useEffect(() => {
-    setSelected((s) =>
-      s ? exceptions.find((e) => e.id === s.id) ?? s : s,
-    );
+    setSelected((s) => (s ? exceptions.find((e) => e.id === s.id) ?? s : s));
   }, [exceptions]);
 
   const setStatus = useCallback(
@@ -155,15 +185,42 @@ function App() {
     <div className="min-h-screen bg-slate-50">
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <div>
-            <h1 className="text-base font-semibold text-slate-900">
-              Shopify Operations Monitor
-            </h1>
-            <p className="text-xs text-slate-500">
-              {activeShops.length
-                ? activeShops.map((s) => s.shop_domain).join(", ")
-                : "No store connected yet"}
-            </p>
+          <div className="flex items-center gap-8">
+            <div>
+              <h1 className="text-base font-semibold text-slate-900">
+                Shopify Operations Monitor
+              </h1>
+              <p className="text-xs text-slate-500">
+                {activeShops.length
+                  ? activeShops.map((s) => s.shop_domain).join(", ")
+                  : "No store connected yet"}
+              </p>
+            </div>
+            <nav className="flex gap-1">
+              {(
+                [
+                  ["overview", "Overview"],
+                  ["exceptions", "Exceptions"],
+                ] as [Page, string][]
+              ).map(([key, label]) => (
+                <button
+                  key={key}
+                  onClick={() => setPage(key)}
+                  className={`rounded px-3 py-1.5 text-sm ${
+                    page === key
+                      ? "bg-slate-100 font-medium text-slate-900"
+                      : "text-slate-500 hover:text-slate-900"
+                  }`}
+                >
+                  {label}
+                  {key === "exceptions" && counts.open > 0 && (
+                    <span className="ml-1.5 rounded-full bg-red-100 px-1.5 text-xs font-medium text-red-700">
+                      {counts.open}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </nav>
           </div>
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1.5 text-xs text-slate-500">
@@ -185,52 +242,63 @@ function App() {
       </header>
 
       <main className="mx-auto max-w-6xl space-y-6 px-6 py-8">
-        <ConnectStore />
+        {page === "overview" ? (
+          <Overview
+            shops={shops}
+            counts={counts}
+            highOpen={highOpen}
+            resolved7d={resolved7d}
+            recent={recent}
+            nowMs={nowMs}
+          />
+        ) : (
+          <>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                {FILTERS.map((f) => {
+                  const n = f.key === "all" ? totalCount : counts[f.key];
+                  const active = filter === f.key;
+                  return (
+                    <button
+                      key={f.key}
+                      onClick={() => setFilter(f.key)}
+                      className={`rounded-full px-3 py-1 text-sm ${
+                        active
+                          ? "bg-slate-900 text-white"
+                          : "border border-slate-300 text-slate-600 hover:bg-white"
+                      }`}
+                    >
+                      {f.label}
+                      <span
+                        className={`ml-1.5 text-xs ${
+                          active ? "text-slate-300" : "text-slate-400"
+                        }`}
+                      >
+                        {n}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              <button
+                onClick={() => void refresh()}
+                disabled={loading}
+                className="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-white disabled:opacity-50"
+              >
+                {loading ? "Loading…" : "Refresh"}
+              </button>
+            </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            {FILTERS.map((f) => {
-              const n = f.key === "all" ? totalCount : counts[f.key];
-              const active = filter === f.key;
-              return (
-                <button
-                  key={f.key}
-                  onClick={() => setFilter(f.key)}
-                  className={`rounded-full px-3 py-1 text-sm ${
-                    active
-                      ? "bg-slate-900 text-white"
-                      : "border border-slate-300 text-slate-600 hover:bg-white"
-                  }`}
-                >
-                  {f.label}
-                  <span
-                    className={`ml-1.5 text-xs ${
-                      active ? "text-slate-300" : "text-slate-400"
-                    }`}
-                  >
-                    {n}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-          <button
-            onClick={() => void refresh()}
-            disabled={loading}
-            className="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-white disabled:opacity-50"
-          >
-            {loading ? "Loading…" : "Refresh"}
-          </button>
-        </div>
-
-        <ExceptionList
-          exceptions={exceptions}
-          shops={shops}
-          nowMs={nowMs}
-          busyId={busyId}
-          onSelect={setSelected}
-          onSetStatus={setStatus}
-        />
+            <ExceptionList
+              exceptions={exceptions}
+              shops={shops}
+              nowMs={nowMs}
+              busyId={busyId}
+              onSelect={setSelected}
+              onSetStatus={setStatus}
+            />
+          </>
+        )}
       </main>
 
       {selected && (

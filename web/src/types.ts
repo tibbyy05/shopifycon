@@ -8,6 +8,14 @@ export interface Shop {
   uninstalled_at: string | null;
 }
 
+/** Slim projection used by the Overview aggregates. */
+export interface RecentException {
+  rule_id: string;
+  severity: Severity;
+  status: ExceptionStatus;
+  first_seen_at: string;
+}
+
 export interface ExceptionRow {
   id: string;
   shop_id: string;
