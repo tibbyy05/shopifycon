@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./lib/supabase";
-import { SignIn } from "./components/SignIn";
+import { Landing } from "./components/Landing";
 import { Overview } from "./components/Overview";
 import { ExceptionList } from "./components/ExceptionList";
 import { ExceptionDrawer } from "./components/ExceptionDrawer";
@@ -197,7 +197,7 @@ function App() {
   );
 
   if (!authReady) return null;
-  if (!session) return <SignIn />;
+  if (!session) return <Landing />;
 
   const activeShops = shops.filter((s) => !s.uninstalled_at);
   const totalCount = counts.open + counts.ack + counts.resolved;
