@@ -1,3 +1,6 @@
+export type Severity = "low" | "medium" | "high";
+export type ExceptionStatus = "open" | "ack" | "resolved";
+
 export interface Shop {
   id: string;
   shop_domain: string;
@@ -11,8 +14,9 @@ export interface ExceptionRow {
   rule_id: string;
   resource_type: string;
   resource_id: string;
-  severity: "low" | "medium" | "high";
-  status: "open" | "ack" | "resolved";
+  severity: Severity;
+  status: ExceptionStatus;
   details: Record<string, unknown>;
   first_seen_at: string;
+  resolved_at: string | null;
 }
