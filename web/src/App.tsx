@@ -6,6 +6,7 @@ import { Overview } from "./components/Overview";
 import { ExceptionList } from "./components/ExceptionList";
 import { ExceptionDrawer } from "./components/ExceptionDrawer";
 import { AlertSettings } from "./components/AlertSettings";
+import { RulesSettings } from "./components/RulesSettings";
 import type {
   ExceptionRow,
   ExceptionStatus,
@@ -14,7 +15,7 @@ import type {
 } from "./types";
 
 type StatusFilter = ExceptionStatus | "all";
-type Page = "overview" | "exceptions" | "alerts";
+type Page = "overview" | "exceptions" | "rules" | "alerts";
 
 const FILTERS: { key: StatusFilter; label: string }[] = [
   { key: "open", label: "Open" },
@@ -202,6 +203,7 @@ function App() {
                 [
                   ["overview", "Overview"],
                   ["exceptions", "Exceptions"],
+                  ["rules", "Rules"],
                   ["alerts", "Alerts"],
                 ] as [Page, string][]
               ).map(([key, label]) => (
@@ -253,6 +255,8 @@ function App() {
             recent={recent}
             nowMs={nowMs}
           />
+        ) : page === "rules" ? (
+          <RulesSettings shops={shops} />
         ) : page === "alerts" ? (
           <AlertSettings shops={shops} />
         ) : (

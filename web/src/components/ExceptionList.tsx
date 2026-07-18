@@ -1,5 +1,10 @@
 import type { ExceptionRow, ExceptionStatus, Shop } from "../types";
-import { shopifyAdminUrl, timeAgo } from "../lib/format";
+import {
+  exceptionSummary,
+  resourceName,
+  shopifyAdminUrl,
+  timeAgo,
+} from "../lib/format";
 import { ruleLabel } from "../lib/rules";
 import { SeverityBadge, StatusBadge } from "./Badges";
 
@@ -52,6 +57,7 @@ export function ExceptionList({
               domain,
               exc.resource_type,
               exc.resource_id,
+              exc.details,
             );
             return (
               <tr
@@ -66,7 +72,7 @@ export function ExceptionList({
                   {ruleLabel(exc.rule_id)}
                 </td>
                 <td className="px-4 py-2 text-slate-600">
-                  {String(exc.details.order_name ?? `${exc.resource_type} ${exc.resource_id}`)}
+                  {resourceName(exc.resource_type, exc.resource_id, exc.details)}
                   {adminUrl && (
                     <a
                       href={adminUrl}
@@ -82,9 +88,7 @@ export function ExceptionList({
                 </td>
                 <td className="px-4 py-2 text-slate-600">{domain}</td>
                 <td className="px-4 py-2 text-slate-600">
-                  {exc.details.age_hours != null
-                    ? `${exc.details.age_hours}h old (threshold ${exc.details.threshold_hours}h)`
-                    : ""}
+                  {exceptionSummary(exc.rule_id, exc.details)}
                 </td>
                 <td
                   className="px-4 py-2 text-slate-500"

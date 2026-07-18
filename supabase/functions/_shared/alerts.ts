@@ -19,6 +19,9 @@ interface SendResult {
 
 const RULE_LABELS: Record<string, string> = {
   "aging-unfulfilled": "Aging unfulfilled order",
+  "order-flow-silence": "Order flow silence",
+  "inventory-low": "Inventory low or oversold",
+  "stuck-fulfillment": "Stuck partial fulfillment",
 };
 const ruleLabel = (id: string) => RULE_LABELS[id] ?? id;
 
@@ -39,11 +42,22 @@ export function adminResourceUrl(
   shopDomain: string,
   resourceType: string,
   resourceId: string,
+  details: Record<string, unknown> = {},
 ): string | null {
+  const handle = shopDomain.replace(/\.myshopify\.com$/, "");
+  const base = `https://admin.shopify.com/store/${handle}`;
+  // Shop-level exceptions (e.g. order-flow silence) link to the orders list.
+  if (resourceType === "shop") return `${base}/orders`;
+  if (
+    resourceType === "variant" &&
+    typeof details.product_id === "string" &&
+    /^\d+$/.test(resourceId)
+  ) {
+    return `${base}/products/${details.product_id}/variants/${resourceId}`;
+  }
   const path = ADMIN_PATHS[resourceType];
   if (!path || !/^\d+$/.test(resourceId)) return null;
-  const handle = shopDomain.replace(/\.myshopify\.com$/, "");
-  return `https://admin.shopify.com/store/${handle}/${path}/${resourceId}`;
+  return `${base}/${path}/${resourceId}`;
 }
 
 // ── content ─────────────────────────────────────────────────────────
@@ -59,8 +73,18 @@ export interface AlertContent {
 }
 
 function headline(c: AlertContent): string {
-  const name = typeof c.details.order_name === "string"
-    ? c.details.order_name
+  const d = c.details;
+  if (c.ruleId === "order-flow-silence") {
+    return `No orders for ${d.quiet_hours ?? "?"}h`;
+  }
+  if (c.ruleId === "inventory-low") {
+    const name = [d.product_title, d.variant_title]
+      .filter((s) => typeof s === "string" && s && s !== "Default Title")
+      .join(" / ");
+    return `${ruleLabel(c.ruleId)} — ${name || `variant ${c.resourceId}`}`;
+  }
+  const name = typeof d.order_name === "string"
+    ? d.order_name
     : `${c.resourceType} ${c.resourceId}`;
   return `${ruleLabel(c.ruleId)} — ${name}`;
 }
@@ -70,6 +94,22 @@ function factLines(c: AlertContent): [string, string][] {
   const facts: [string, string][] = [["Store", c.shopDomain]];
   if (d.age_hours != null) {
     facts.push(["Age", `${d.age_hours}h (threshold ${d.threshold_hours}h)`]);
+  }
+  if (d.quiet_hours != null) {
+    facts.push([
+      "Quiet for",
+      `${d.quiet_hours}h (threshold ${d.threshold_hours}h)`,
+    ]);
+    if (typeof d.last_order_name === "string") {
+      facts.push(["Last order", d.last_order_name]);
+    }
+    if (d.weekly_orders != null) {
+      facts.push(["Orders last 7 days", String(d.weekly_orders)]);
+    }
+  }
+  if (d.available != null) {
+    facts.push(["Available", `${d.available} (threshold ${d.threshold})`]);
+    if (typeof d.sku === "string" && d.sku) facts.push(["SKU", d.sku]);
   }
   const total = d.total as { amount?: string; currencyCode?: string } | null;
   if (total?.amount) {
@@ -90,7 +130,7 @@ export function emailSubject(c: AlertContent): string {
 }
 
 export function emailText(c: AlertContent): string {
-  const adminUrl = adminResourceUrl(c.shopDomain, c.resourceType, c.resourceId);
+  const adminUrl = adminResourceUrl(c.shopDomain, c.resourceType, c.resourceId, c.details);
   return [
     ...(c.test ? ["This is a test alert from Shopify Ops Monitor.", ""] : []),
     headline(c),
@@ -104,7 +144,7 @@ export function emailText(c: AlertContent): string {
 
 export function emailHtml(c: AlertContent): string {
   const color = SEVERITY_COLOR[c.severity] ?? "#64748b";
-  const adminUrl = adminResourceUrl(c.shopDomain, c.resourceType, c.resourceId);
+  const adminUrl = adminResourceUrl(c.shopDomain, c.resourceType, c.resourceId, c.details);
   const rows = factLines(c)
     .map(
       ([k, v]) => `
@@ -148,7 +188,7 @@ export function emailHtml(c: AlertContent): string {
 }
 
 function slackPayload(c: AlertContent): Record<string, unknown> {
-  const adminUrl = adminResourceUrl(c.shopDomain, c.resourceType, c.resourceId);
+  const adminUrl = adminResourceUrl(c.shopDomain, c.resourceType, c.resourceId, c.details);
   const facts = factLines(c)
     .map(([k, v]) => `*${k}:* ${v}`)
     .join("\n");

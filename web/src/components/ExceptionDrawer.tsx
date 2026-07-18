@@ -1,6 +1,11 @@
 import { useEffect } from "react";
 import type { ExceptionRow, ExceptionStatus } from "../types";
-import { formatMoney, shopifyAdminUrl, timeAgo } from "../lib/format";
+import {
+  formatMoney,
+  resourceName,
+  shopifyAdminUrl,
+  timeAgo,
+} from "../lib/format";
 import { ruleLabel } from "../lib/rules";
 import { SeverityBadge, StatusBadge } from "./Badges";
 
@@ -49,7 +54,12 @@ export function ExceptionDrawer({
   }, [onClose]);
 
   const d = exc.details;
-  const adminUrl = shopifyAdminUrl(shopDomain, exc.resource_type, exc.resource_id);
+  const adminUrl = shopifyAdminUrl(
+    shopDomain,
+    exc.resource_type,
+    exc.resource_id,
+    d,
+  );
   const total = formatMoney(d.total);
   const extraDetails = Object.entries(d).filter(
     ([k, v]) => !KNOWN_DETAIL_KEYS.has(k) && v != null,
@@ -85,7 +95,7 @@ export function ExceptionDrawer({
                 {ruleLabel(exc.rule_id)}
               </h2>
               <p className="mt-0.5 text-sm text-slate-500">
-                {String(d.order_name ?? `${exc.resource_type} ${exc.resource_id}`)}
+                {resourceName(exc.resource_type, exc.resource_id, d)}
                 {" · "}
                 {shopDomain}
               </p>

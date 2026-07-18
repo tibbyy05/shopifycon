@@ -22,11 +22,64 @@ export function shopifyAdminUrl(
   shopDomain: string,
   resourceType: string,
   resourceId: string,
+  details: Record<string, unknown> = {},
 ): string | null {
+  const handle = shopDomain.replace(/\.myshopify\.com$/, "");
+  const base = `https://admin.shopify.com/store/${handle}`;
+  // Shop-level exceptions (e.g. order-flow silence) link to the orders list.
+  if (resourceType === "shop") return `${base}/orders`;
+  if (
+    resourceType === "variant" &&
+    typeof details.product_id === "string" &&
+    /^\d+$/.test(resourceId)
+  ) {
+    return `${base}/products/${details.product_id}/variants/${resourceId}`;
+  }
   const path = ADMIN_PATHS[resourceType];
   if (!path || !/^\d+$/.test(resourceId)) return null;
-  const handle = shopDomain.replace(/\.myshopify\.com$/, "");
-  return `https://admin.shopify.com/store/${handle}/${path}/${resourceId}`;
+  return `${base}/${path}/${resourceId}`;
+}
+
+/** One-line human summary of an exception, per rule. */
+export function exceptionSummary(
+  ruleId: string,
+  details: Record<string, unknown>,
+): string {
+  switch (ruleId) {
+    case "aging-unfulfilled":
+    case "stuck-fulfillment":
+      return details.age_hours != null
+        ? `${details.age_hours}h old (threshold ${details.threshold_hours}h)`
+        : "";
+    case "order-flow-silence":
+      return details.quiet_hours != null
+        ? `no orders for ${details.quiet_hours}h (threshold ${details.threshold_hours}h)`
+        : "";
+    case "inventory-low":
+      return details.available != null
+        ? `${details.available} available${details.sku ? ` · ${details.sku}` : ""}`
+        : "";
+    default:
+      return "";
+  }
+}
+
+/** Display name of the thing an exception is about. */
+export function resourceName(
+  resourceType: string,
+  resourceId: string,
+  details: Record<string, unknown>,
+): string {
+  if (typeof details.order_name === "string") return details.order_name;
+  if (typeof details.product_title === "string") {
+    const variant = typeof details.variant_title === "string" &&
+        details.variant_title !== "Default Title"
+      ? ` / ${details.variant_title}`
+      : "";
+    return `${details.product_title}${variant}`;
+  }
+  if (resourceType === "shop") return "storefront";
+  return `${resourceType} ${resourceId}`;
 }
 
 /** Render a Shopify money object ({ amount, currencyCode }) if present. */
