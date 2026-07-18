@@ -1,0 +1,20 @@
+# Shopcon app configuration — deployed with `shopify app deploy`.
+# The app runs OAuth itself (authorization-code flow against the Edge
+# Function), so legacy install flow stays on.
+
+client_id = "0b1810adbcdf5d0444c60ee4fc62c2b9"
+name = "Shopcon"
+application_url = "https://meuqvuszbrmxjqamlctw.supabase.co/functions/v1/shopify-oauth"
+embedded = false
+
+[access_scopes]
+scopes = "read_orders,read_fulfillments,read_products,read_inventory"
+use_legacy_install_flow = true
+
+[auth]
+redirect_urls = [
+  "https://meuqvuszbrmxjqamlctw.supabase.co/functions/v1/shopify-oauth/callback"
+]
+
+[webhooks]
+api_version = "2025-10"
