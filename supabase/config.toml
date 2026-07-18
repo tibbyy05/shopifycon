@@ -423,3 +423,7 @@ verify_jwt = false
 # gateway verification ON (it is the first line of defense).
 [functions.alert-test]
 verify_jwt = true
+
+# Public uptime probe — external monitors ping it unauthenticated.
+[functions.sweep-health]
+verify_jwt = false

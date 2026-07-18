@@ -16,6 +16,7 @@ Deno.serve(async (req) => {
     return new Response("unauthorized", { status: 401 });
   }
 
+  const startedAt = new Date();
   const supabase = serviceClient();
   const store = supabaseStore(supabase);
 
@@ -27,10 +28,16 @@ Deno.serve(async (req) => {
     .is("uninstalled_at", null)
     .not("access_token_encrypted", "is", null);
   if (error) {
+    await supabase.from("sweep_runs").insert({
+      started_at: startedAt.toISOString(),
+      status: "failed",
+      summary: [{ error: `shops query failed: ${error.message}` }],
+    });
     return new Response(`shops query failed: ${error.message}`, { status: 500 });
   }
 
   const summary: Record<string, unknown>[] = [];
+  const totals = { rules: 0, detected: 0, opened: 0, resolved: 0, failed: 0 };
 
   for (const shop of (shops ?? []) as ShopRow[]) {
     try {
@@ -84,12 +91,30 @@ Deno.serve(async (req) => {
           opened: result.opened.length,
           resolved: result.resolved,
         });
+        totals.rules++;
+        totals.detected += result.detected;
+        totals.opened += result.opened.length;
+        totals.resolved += result.resolved;
       }
     } catch (e) {
       console.error(`Sweep failed for ${shop.shop_domain}:`, e);
       summary.push({ shop: shop.shop_domain, error: String(e) });
+      totals.failed++;
     }
   }
+
+  const { error: runError } = await supabase.from("sweep_runs").insert({
+    started_at: startedAt.toISOString(),
+    status: totals.failed ? "partial" : "ok",
+    shops_processed: (shops ?? []).length,
+    shops_failed: totals.failed,
+    rules_run: totals.rules,
+    detected: totals.detected,
+    opened: totals.opened,
+    resolved: totals.resolved,
+    summary,
+  });
+  if (runError) console.error("sweep_runs insert failed:", runError.message);
 
   return new Response(JSON.stringify({ ran_at: new Date().toISOString(), summary }), {
     headers: { "Content-Type": "application/json" },

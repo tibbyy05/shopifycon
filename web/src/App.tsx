@@ -12,7 +12,9 @@ import type {
   ExceptionStatus,
   RecentException,
   Shop,
+  SweepRun,
 } from "./types";
+import { timeAgo } from "./lib/format";
 
 type StatusFilter = ExceptionStatus | "all";
 type Page = "overview" | "exceptions" | "rules" | "alerts";
@@ -43,6 +45,7 @@ function App() {
   });
   const [highOpen, setHighOpen] = useState(0);
   const [resolved7d, setResolved7d] = useState(0);
+  const [lastSweep, setLastSweep] = useState<SweepRun | null>(null);
   const [filter, setFilter] = useState<StatusFilter>("open");
   const [loading, setLoading] = useState(false);
   const [live, setLive] = useState(false);
@@ -84,8 +87,15 @@ function App() {
       .limit(200);
     if (filter !== "all") q = q.eq("status", filter);
 
-    const [shopsRes, excRes, recentRes, highRes, resolvedRes, ...countRes] =
-      await Promise.all([
+    const [
+      shopsRes,
+      excRes,
+      recentRes,
+      highRes,
+      resolvedRes,
+      sweepRes,
+      ...countRes
+    ] = await Promise.all([
         supabase
           .from("shops")
           .select("id, shop_domain, installed_at, uninstalled_at")
@@ -106,6 +116,14 @@ function App() {
           .select("id", { count: "exact", head: true })
           .eq("status", "resolved")
           .gte("resolved_at", new Date(now - 7 * DAY_MS).toISOString()),
+        supabase
+          .from("sweep_runs")
+          .select(
+            "finished_at, status, shops_processed, shops_failed, opened, resolved",
+          )
+          .order("finished_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
         ...(["open", "ack", "resolved"] as const).map((s) =>
           supabase
             .from("exceptions")
@@ -119,6 +137,7 @@ function App() {
     setRecent((recentRes.data as RecentException[]) ?? []);
     setHighOpen(highRes.count ?? 0);
     setResolved7d(resolvedRes.count ?? 0);
+    setLastSweep((sweepRes.data as SweepRun | null) ?? null);
     setCounts({
       open: countRes[0]?.count ?? 0,
       ack: countRes[1]?.count ?? 0,
@@ -227,6 +246,36 @@ function App() {
             </nav>
           </div>
           <div className="flex items-center gap-4">
+            {(() => {
+              const ageMin = lastSweep
+                ? Math.floor(
+                  (nowMs - new Date(lastSweep.finished_at).getTime()) / 60_000,
+                )
+                : null;
+              const healthy = ageMin !== null && ageMin <= 90 &&
+                lastSweep!.status !== "failed";
+              return (
+                <span
+                  className="flex items-center gap-1.5 text-xs text-slate-500"
+                  title={lastSweep
+                    ? `Last sweep: ${lastSweep.shops_processed} shops, ${lastSweep.opened} opened, ${lastSweep.resolved} resolved (${lastSweep.status})`
+                    : "No sweep has run yet"}
+                >
+                  <span
+                    className={`h-2 w-2 rounded-full ${
+                      healthy
+                        ? "bg-emerald-500"
+                        : ageMin === null
+                          ? "bg-slate-300"
+                          : "bg-amber-500"
+                    }`}
+                  />
+                  {lastSweep
+                    ? `Sweep ${timeAgo(lastSweep.finished_at, nowMs)}`
+                    : "Sweep pending"}
+                </span>
+              );
+            })()}
             <span className="flex items-center gap-1.5 text-xs text-slate-500">
               <span
                 className={`h-2 w-2 rounded-full ${

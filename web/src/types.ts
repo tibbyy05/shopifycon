@@ -8,6 +8,15 @@ export interface Shop {
   uninstalled_at: string | null;
 }
 
+export interface SweepRun {
+  finished_at: string;
+  status: "ok" | "partial" | "failed";
+  shops_processed: number;
+  shops_failed: number;
+  opened: number;
+  resolved: number;
+}
+
 export interface AlertChannel {
   id: string;
   shop_id: string;
