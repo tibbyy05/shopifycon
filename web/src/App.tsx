@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./lib/supabase";
 import { Landing } from "./components/Landing";
+import { BRAND_NAME } from "./lib/brand";
 import { Overview } from "./components/Overview";
 import { ExceptionList } from "./components/ExceptionList";
 import { ExceptionDrawer } from "./components/ExceptionDrawer";
@@ -209,7 +210,7 @@ function App() {
           <div className="flex items-center gap-8">
             <div>
               <h1 className="text-base font-semibold text-slate-900">
-                Shopify Operations Monitor
+                {BRAND_NAME}
               </h1>
               <p className="text-xs text-slate-500">
                 {activeShops.length

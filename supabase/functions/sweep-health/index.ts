@@ -9,9 +9,15 @@ import { serviceClient } from "../_shared/db.ts";
 // The sweep is hourly; anything past 90 minutes means a missed run.
 const STALE_MINUTES = 90;
 
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "content-type",
+};
+
 Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "GET") {
-    return new Response("method not allowed", { status: 405 });
+    return new Response("method not allowed", { status: 405, headers: CORS });
   }
 
   const supabase = serviceClient();
@@ -48,6 +54,6 @@ Deno.serve(async (req) => {
 
   return new Response(JSON.stringify(body), {
     status: fresh ? 200 : 503,
-    headers: { "Content-Type": "application/json" },
+    headers: { ...CORS, "Content-Type": "application/json" },
   });
 });

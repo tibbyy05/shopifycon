@@ -1,1 +1,129 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
+
+/* Brand tokens. "signal" is the accent — an alarm-adjacent orange that
+   is deliberately NOT a framework default. */
+@theme {
+  --font-display: "Space Grotesk Variable", ui-sans-serif, system-ui,
+    sans-serif;
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+
+  --color-signal-100: #ffe8da;
+  --color-signal-300: #ffa060;
+  --color-signal-400: #ff7a2b;
+  --color-signal-500: #ff5c00;
+  --color-signal-600: #e14f00;
+
+  --color-ink-950: #0a0a0e;
+  --color-ink-900: #101016;
+  --color-ink-800: #16161e;
+  --color-ink-700: #23232e;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.animate-pulse-dot {
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(18px); filter: blur(3px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+.animate-rise {
+  animation: rise 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes floaty {
+  from { transform: translateY(0); }
+  to { transform: translateY(-8px); }
+}
+
+.animate-floaty {
+  animation: floaty 5s ease-in-out infinite alternate;
+}
+
+@keyframes drift-a {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(60px, -40px) scale(1.15); }
+}
+
+@keyframes drift-b {
+  0%, 100% { transform: translate(0, 0) scale(1.1); }
+  50% { transform: translate(-50px, 30px) scale(0.95); }
+}
+
+.animate-drift-a { animation: drift-a 16s ease-in-out infinite; }
+.animate-drift-b { animation: drift-b 20s ease-in-out infinite; }
+
+@keyframes ticker-in {
+  0% { opacity: 0; transform: translateY(14px) scale(0.97); }
+  8%, 88% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-10px) scale(0.98); }
+}
+
+.animate-ticker { animation: ticker-in 3.6s ease-in-out both; }
+
+/* Film-grain overlay — the subtle texture that kills "flat template". */
+.grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Dot grid, faded out radially. */
+.dotgrid {
+  background-image: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.09) 1px,
+    transparent 1px
+  );
+  background-size: 26px 26px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 35%, black, transparent);
+}
+
+/* Gradient headline accent with glow. */
+.text-glow {
+  background: linear-gradient(100deg, #ffa060, #ff5c00 45%, #ffb347);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 24px rgba(255, 92, 0, 0.35));
+}
+
+/* CTA shine sweep. */
+.btn-shine {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-shine::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -75%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    105deg,
+    transparent,
+    rgba(255, 255, 255, 0.35),
+    transparent
+  );
+  transform: skewX(-20deg);
+  transition: left 0.6s ease;
+}
+
+.btn-shine:hover::before {
+  left: 125%;
+}
