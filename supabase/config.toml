@@ -418,3 +418,8 @@ verify_jwt = false
 
 [functions.rules-sweep]
 verify_jwt = false
+
+# alert-test is called from the dashboard with the user's JWT — keep
+# gateway verification ON (it is the first line of defense).
+[functions.alert-test]
+verify_jwt = true

@@ -5,6 +5,7 @@ import { SignIn } from "./components/SignIn";
 import { Overview } from "./components/Overview";
 import { ExceptionList } from "./components/ExceptionList";
 import { ExceptionDrawer } from "./components/ExceptionDrawer";
+import { AlertSettings } from "./components/AlertSettings";
 import type {
   ExceptionRow,
   ExceptionStatus,
@@ -13,7 +14,7 @@ import type {
 } from "./types";
 
 type StatusFilter = ExceptionStatus | "all";
-type Page = "overview" | "exceptions";
+type Page = "overview" | "exceptions" | "alerts";
 
 const FILTERS: { key: StatusFilter; label: string }[] = [
   { key: "open", label: "Open" },
@@ -201,6 +202,7 @@ function App() {
                 [
                   ["overview", "Overview"],
                   ["exceptions", "Exceptions"],
+                  ["alerts", "Alerts"],
                 ] as [Page, string][]
               ).map(([key, label]) => (
                 <button
@@ -251,6 +253,8 @@ function App() {
             recent={recent}
             nowMs={nowMs}
           />
+        ) : page === "alerts" ? (
+          <AlertSettings shops={shops} />
         ) : (
           <>
             <div className="flex flex-wrap items-center justify-between gap-3">
