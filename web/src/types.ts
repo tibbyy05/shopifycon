@@ -42,6 +42,7 @@ export interface ExceptionRow {
   severity: Severity;
   status: ExceptionStatus;
   details: Record<string, unknown>;
+  triage: { summary: string; recommendation: string } | null;
   first_seen_at: string;
   resolved_at: string | null;
 }

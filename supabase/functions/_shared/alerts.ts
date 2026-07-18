@@ -69,6 +69,7 @@ export interface AlertContent {
   resourceType: string;
   resourceId: string;
   details: Record<string, unknown>;
+  triage?: { summary: string; recommendation: string } | null;
   test?: boolean;
 }
 
@@ -136,6 +137,13 @@ export function emailText(c: AlertContent): string {
     headline(c),
     `Severity: ${c.severity}`,
     ...factLines(c).map(([k, v]) => `${k}: ${v}`),
+    ...(c.triage
+      ? [
+        ``,
+        `What happened: ${c.triage.summary}`,
+        `Recommended action: ${c.triage.recommendation}`,
+      ]
+      : []),
     ``,
     ...(adminUrl ? [`Open in Shopify admin: ${adminUrl}`] : []),
     `Dashboard: ${env.dashboardUrl}`,
@@ -176,6 +184,14 @@ export function emailHtml(c: AlertContent): string {
       </div>
       <div style="padding:16px 24px;">
         <table cellpadding="0" cellspacing="0" style="border-collapse:collapse;">${rows}</table>
+        ${
+    c.triage
+      ? `<div style="margin-top:16px;padding:12px 14px;background:#f8fafc;border-left:3px solid #0ea5e9;border-radius:0 6px 6px 0;">
+          <p style="margin:0;color:#0f172a;font-size:14px;line-height:1.5;">${c.triage.summary}</p>
+          <p style="margin:8px 0 0;color:#0f172a;font-size:14px;line-height:1.5;"><strong>Recommended:</strong> ${c.triage.recommendation}</p>
+        </div>`
+      : ""
+  }
         <div style="margin-top:20px;">
           ${adminUrl ? button(adminUrl, "Open in Shopify admin", true) : ""}
           ${button(env.dashboardUrl, "Open dashboard", false)}
@@ -206,6 +222,15 @@ function slackPayload(c: AlertContent): Record<string, unknown> {
           text: `${c.test ? ":white_check_mark: *Test alert* — " : ""}*[${c.severity.toUpperCase()}] ${headline(c)}*\n${facts}`,
         },
       },
+      ...(c.triage
+        ? [{
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `${c.triage.summary}\n*Recommended:* ${c.triage.recommendation}`,
+          },
+        }]
+        : []),
       {
         type: "context",
         elements: [{ type: "mrkdwn", text: links }],
@@ -274,6 +299,7 @@ export async function dispatchAlert(
   shopDomain: string,
   exceptionId: string,
   exc: ExceptionInsert,
+  triage: { summary: string; recommendation: string } | null = null,
 ): Promise<void> {
   const content: AlertContent = {
     shopDomain,
@@ -282,6 +308,7 @@ export async function dispatchAlert(
     resourceType: exc.resource_type,
     resourceId: exc.resource_id,
     details: exc.details,
+    triage,
   };
 
   const { data } = await supabase

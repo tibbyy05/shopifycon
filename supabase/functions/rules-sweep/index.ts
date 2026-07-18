@@ -10,6 +10,11 @@ import type { RuleContext } from "../_shared/rules/types.ts";
 import { supabaseStore } from "../_shared/store.ts";
 import { sha256Hex } from "../_shared/crypto.ts";
 import { dispatchAlert } from "../_shared/alerts.ts";
+import { generateTriage, type Triage } from "../_shared/triage.ts";
+
+// Bound Claude calls per rule run so a flood of new exceptions can't
+// stall the sweep; the rest simply go out untriaged.
+const MAX_TRIAGE_PER_RULE = 10;
 
 Deno.serve(async (req) => {
   if (req.headers.get("x-sweep-token") !== env.sweepSecret) {
@@ -73,6 +78,27 @@ Deno.serve(async (req) => {
           sha256Hex,
         );
 
+        // Triage new exceptions before alerting so alerts arrive
+        // pre-investigated. Skipped entirely when no API key is set.
+        const triages = new Map<string, Triage>();
+        for (const opened of result.opened.slice(0, MAX_TRIAGE_PER_RULE)) {
+          const triage = await generateTriage({
+            ruleId: rule.id,
+            shopDomain: shop.shop_domain,
+            severity: opened.exception.severity,
+            resourceType: opened.exception.resource_type,
+            resourceId: opened.exception.resource_id,
+            details: opened.exception.details,
+          });
+          if (triage) {
+            triages.set(opened.id, triage);
+            await supabase.from("exceptions").update({ triage }).eq(
+              "id",
+              opened.id,
+            );
+          }
+        }
+
         if (rule.defaultAction.type === "alert") {
           for (const opened of result.opened) {
             await dispatchAlert(
@@ -80,6 +106,7 @@ Deno.serve(async (req) => {
               shop.shop_domain,
               opened.id,
               opened.exception,
+              triages.get(opened.id) ?? null,
             );
           }
         }

@@ -42,4 +42,11 @@ export const env = {
   get dashboardUrl() {
     return Deno.env.get("DASHBOARD_URL") ?? "http://localhost:5173";
   },
+  /** Optional — AI triage is skipped when unset. */
+  get anthropicApiKey() {
+    return Deno.env.get("ANTHROPIC_API_KEY") ?? "";
+  },
+  get triageModel() {
+    return Deno.env.get("TRIAGE_MODEL") ?? "claude-opus-4-8";
+  },
 };

@@ -28,7 +28,7 @@ const FILTERS: { key: StatusFilter; label: string }[] = [
 ];
 
 const EXCEPTION_COLUMNS =
-  "id, shop_id, rule_id, resource_type, resource_id, severity, status, details, first_seen_at, resolved_at";
+  "id, shop_id, rule_id, resource_type, resource_id, severity, status, details, triage, first_seen_at, resolved_at";
 
 const DAY_MS = 86_400_000;
 

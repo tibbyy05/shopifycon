@@ -142,6 +142,24 @@ export function ExceptionDrawer({
             </a>
           )}
 
+          {exc.triage && (
+            <div className="mb-4 rounded-lg border border-sky-200 bg-sky-50/60 p-4">
+              <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-sky-700">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                  <path d="M12 2l1.9 5.7a2 2 0 0 0 1.3 1.3L21 11l-5.8 1.9a2 2 0 0 0-1.3 1.3L12 20l-1.9-5.8a2 2 0 0 0-1.3-1.3L3 11l5.8-2a2 2 0 0 0 1.3-1.3L12 2z" />
+                </svg>
+                AI triage
+              </p>
+              <p className="mt-2 text-sm leading-relaxed text-slate-700">
+                {exc.triage.summary}
+              </p>
+              <p className="mt-2 text-sm leading-relaxed text-slate-700">
+                <span className="font-semibold">Recommended:</span>{" "}
+                {exc.triage.recommendation}
+              </p>
+            </div>
+          )}
+
           <dl className="divide-y divide-slate-100">
             <Fact label="Store">{shopDomain}</Fact>
             <Fact label="Resource">
