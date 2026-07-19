@@ -30,6 +30,8 @@ export interface DetectedException {
   resourceId: string;
   severity: Severity;
   details: Record<string, unknown>;
+  /** Estimated dollars exposed by this exception (shop currency). */
+  revenueAtRisk?: number | null;
   /**
    * The state that makes this occurrence distinct. Feeds the idempotency
    * key so webhook retries and re-sweeps never duplicate a row.

@@ -12,6 +12,7 @@ const variantNode = (
   id: `gid://shopify/ProductVariant/${id}`,
   title: "Default Title",
   sku: `SKU-${id}`,
+  price: "10.00",
   inventoryQuantity: qty,
   inventoryItem: { tracked: true },
   product: {
@@ -59,11 +60,15 @@ describe("inventory-low rule", () => {
       product_id: "5001",
       sku: "SKU-1",
     });
+    // Oversold by 2 at $10 → $20 refund exposure
+    expect(detected[0]!.revenueAtRisk).toBe(20);
     expect(detected[1]).toMatchObject({
       resourceId: "2",
       severity: "medium",
       salientState: "low:0",
     });
+    // Out of stock → at least one lost sale at $10
+    expect(detected[1]!.revenueAtRisk).toBe(10);
   });
 
   it("skips untracked inventory and non-active products", async () => {

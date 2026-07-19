@@ -28,7 +28,7 @@ const FILTERS: { key: StatusFilter; label: string }[] = [
 ];
 
 const EXCEPTION_COLUMNS =
-  "id, shop_id, rule_id, resource_type, resource_id, severity, status, details, triage, first_seen_at, resolved_at";
+  "id, shop_id, rule_id, resource_type, resource_id, severity, status, details, triage, revenue_at_risk, first_seen_at, resolved_at";
 
 const DAY_MS = 86_400_000;
 
@@ -46,6 +46,7 @@ function App() {
   });
   const [highOpen, setHighOpen] = useState(0);
   const [resolved7d, setResolved7d] = useState(0);
+  const [atRisk, setAtRisk] = useState(0);
   const [lastSweep, setLastSweep] = useState<SweepRun | null>(null);
   const [filter, setFilter] = useState<StatusFilter>("open");
   const [loading, setLoading] = useState(false);
@@ -95,6 +96,7 @@ function App() {
       highRes,
       resolvedRes,
       sweepRes,
+      riskRes,
       ...countRes
     ] = await Promise.all([
         supabase
@@ -125,6 +127,11 @@ function App() {
           .order("finished_at", { ascending: false })
           .limit(1)
           .maybeSingle(),
+        supabase
+          .from("exceptions")
+          .select("revenue_at_risk")
+          .eq("status", "open")
+          .not("revenue_at_risk", "is", null),
         ...(["open", "ack", "resolved"] as const).map((s) =>
           supabase
             .from("exceptions")
@@ -139,6 +146,12 @@ function App() {
     setHighOpen(highRes.count ?? 0);
     setResolved7d(resolvedRes.count ?? 0);
     setLastSweep((sweepRes.data as SweepRun | null) ?? null);
+    setAtRisk(
+      ((riskRes.data as { revenue_at_risk: number }[]) ?? []).reduce(
+        (sum, r) => sum + Number(r.revenue_at_risk || 0),
+        0,
+      ),
+    );
     setCounts({
       open: countRes[0]?.count ?? 0,
       ack: countRes[1]?.count ?? 0,
@@ -302,6 +315,7 @@ function App() {
             counts={counts}
             highOpen={highOpen}
             resolved7d={resolved7d}
+            atRisk={atRisk}
             recent={recent}
             nowMs={nowMs}
           />

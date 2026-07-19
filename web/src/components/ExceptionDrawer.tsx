@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import type { ExceptionRow, ExceptionStatus } from "../types";
 import {
   formatMoney,
+  formatUsd,
   resourceName,
   shopifyAdminUrl,
   timeAgo,
@@ -161,6 +162,13 @@ export function ExceptionDrawer({
           )}
 
           <dl className="divide-y divide-slate-100">
+            {exc.revenue_at_risk != null && exc.revenue_at_risk > 0 && (
+              <Fact label="Revenue at risk">
+                <span className="font-semibold text-red-600">
+                  {formatUsd(Number(exc.revenue_at_risk))}
+                </span>
+              </Fact>
+            )}
             <Fact label="Store">{shopDomain}</Fact>
             <Fact label="Resource">
               {exc.resource_type} {exc.resource_id}

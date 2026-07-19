@@ -1,6 +1,7 @@
 import type { ExceptionRow, ExceptionStatus, Shop } from "../types";
 import {
   exceptionSummary,
+  formatUsd,
   resourceName,
   shopifyAdminUrl,
   timeAgo,
@@ -41,6 +42,7 @@ export function ExceptionList({
         <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
           <tr>
             <th className="px-4 py-2">Severity</th>
+            <th className="px-4 py-2 text-right">At risk</th>
             <th className="px-4 py-2">Rule</th>
             <th className="px-4 py-2">Resource</th>
             <th className="px-4 py-2">Store</th>
@@ -67,6 +69,11 @@ export function ExceptionList({
               >
                 <td className="px-4 py-2">
                   <SeverityBadge severity={exc.severity} />
+                </td>
+                <td className="px-4 py-2 text-right font-medium tabular-nums text-slate-900">
+                  {exc.revenue_at_risk != null && exc.revenue_at_risk > 0
+                    ? formatUsd(Number(exc.revenue_at_risk))
+                    : ""}
                 </td>
                 <td className="px-4 py-2 text-slate-900">
                   {ruleLabel(exc.rule_id)}

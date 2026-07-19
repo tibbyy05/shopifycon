@@ -73,11 +73,13 @@ export const stuckFulfillmentRule: ExceptionRule = {
         );
         if (ageHours < maxAgeHours) continue;
 
+        const total = Number(order.totalPriceSet?.shopMoney?.amount);
         detected.push({
           ruleId: stuckFulfillmentRule.id,
           resourceType: "order",
           resourceId: gidToId(order.id),
           severity: stuckFulfillmentRule.severity,
+          revenueAtRisk: Number.isFinite(total) ? total : null,
           salientState: "partial",
           details: {
             order_name: order.name,

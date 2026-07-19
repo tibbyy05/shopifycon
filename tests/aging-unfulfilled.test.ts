@@ -60,6 +60,7 @@ describe("aging-unfulfilled rule", () => {
       age_hours: 75,
       threshold_hours: 48,
     });
+    expect(detected[0]!.revenueAtRisk).toBe(49.99);
   });
 
   it("builds the Shopify search query from the threshold and now()", async () => {

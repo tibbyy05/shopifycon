@@ -18,6 +18,7 @@ const VARIANTS_QUERY = /* GraphQL */ `
         id
         title
         sku
+        price
         inventoryQuantity
         inventoryItem { tracked }
         product { id title status }
@@ -30,6 +31,7 @@ interface VariantNode {
   id: string;
   title: string;
   sku: string | null;
+  price: string | null;
   inventoryQuantity: number | null;
   inventoryItem: { tracked: boolean } | null;
   product: { id: string; title: string; status: string };
@@ -65,17 +67,25 @@ export const inventoryLowRule: ExceptionRule = {
         if (qty > threshold) continue; // search index can lag
 
         const oversold = qty < 0;
+        // Oversold: refund exposure on already-sold units. Otherwise: at
+        // least one lost sale while the variant can't sell.
+        const price = Number(v.price);
+        const atRisk = Number.isFinite(price) && price > 0
+          ? price * Math.max(1, -qty)
+          : null;
         detected.push({
           ruleId: inventoryLowRule.id,
           resourceType: "variant",
           resourceId: gidToId(v.id),
           severity: oversold ? "high" : "medium",
+          revenueAtRisk: atRisk,
           salientState: oversold ? "oversold" : `low:${threshold}`,
           details: {
             product_id: gidToId(v.product.id),
             product_title: v.product.title,
             variant_title: v.title,
             sku: v.sku || null,
+            variant_price: Number.isFinite(price) ? price : null,
             available: qty,
             threshold,
           },

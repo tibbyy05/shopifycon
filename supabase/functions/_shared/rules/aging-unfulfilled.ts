@@ -77,11 +77,13 @@ export const agingUnfulfilledRule: ExceptionRule = {
         );
         if (ageHours < maxAgeHours) continue;
 
+        const total = Number(order.totalPriceSet?.shopMoney?.amount);
         detected.push({
           ruleId: agingUnfulfilledRule.id,
           resourceType: "order",
           resourceId: gidToId(order.id),
           severity: agingUnfulfilledRule.severity,
+          revenueAtRisk: Number.isFinite(total) ? total : null,
           salientState: "unfulfilled",
           details: {
             order_name: order.name,

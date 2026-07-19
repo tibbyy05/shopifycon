@@ -1,5 +1,5 @@
 import type { ExceptionStatus, RecentException, Shop } from "../types";
-import { timeAgo } from "../lib/format";
+import { formatUsd, timeAgo } from "../lib/format";
 import { ruleLabel } from "../lib/rules";
 import { ConnectStore } from "./ConnectStore";
 import { TrendChart } from "./TrendChart";
@@ -11,7 +11,7 @@ function Tile({
   accent,
 }: {
   label: string;
-  value: number;
+  value: number | string;
   sub?: string;
   accent?: string;
 }) {
@@ -33,6 +33,7 @@ export function Overview({
   counts,
   highOpen,
   resolved7d,
+  atRisk,
   recent,
   nowMs,
 }: {
@@ -40,6 +41,7 @@ export function Overview({
   counts: Record<ExceptionStatus, number>;
   highOpen: number;
   resolved7d: number;
+  atRisk: number;
   recent: RecentException[];
   nowMs: number;
 }) {
@@ -58,12 +60,17 @@ export function Overview({
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Tile
+          label="Revenue at risk"
+          value={formatUsd(atRisk)}
+          sub={atRisk ? "across open exceptions" : "nothing at risk right now"}
+          accent={atRisk ? "text-red-600" : "text-emerald-600"}
+        />
+        <Tile
           label="Open exceptions"
           value={counts.open}
           sub={highOpen ? `${highOpen} high severity` : "none high severity"}
-          accent={counts.open ? "text-red-600" : "text-emerald-600"}
+          accent={counts.open ? "text-slate-900" : "text-emerald-600"}
         />
-        <Tile label="Acknowledged" value={counts.ack} sub="being handled" />
         <Tile label="Resolved" value={resolved7d} sub="last 7 days" />
         <Tile
           label="Connected stores"

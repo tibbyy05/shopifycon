@@ -17,6 +17,9 @@ const SILENCE_QUERY = /* GraphQL */ `
       nodes { id name createdAt }
     }
     weekly: ordersCount(query: $weeklyQ) { count }
+    recent: orders(first: 50, query: $weeklyQ, sortKey: CREATED_AT, reverse: true) {
+      nodes { totalPriceSet { shopMoney { amount } } }
+    }
   }
 `;
 
@@ -51,11 +54,27 @@ export const orderFlowSilenceRule: ExceptionRule = {
       : Infinity;
     if (quietHoursActual < quietHours) return [];
 
+    // Daily revenue run-rate from the last week's orders (first 50 —
+    // an underestimate on busier stores, so "at least this much").
+    const recentNodes = (data.recent as {
+      nodes: { totalPriceSet?: { shopMoney?: { amount?: string } } }[];
+    } | null)?.nodes ?? [];
+    const weeklyRevenue = recentNodes.reduce((sum, n) => {
+      const v = Number(n.totalPriceSet?.shopMoney?.amount);
+      return Number.isFinite(v) ? sum + v : sum;
+    }, 0);
+    const dailyRevenue = weeklyRevenue / 7;
+    const quietH = Number.isFinite(quietHoursActual) ? quietHoursActual : 0;
+    const missed = dailyRevenue > 0
+      ? Math.round(dailyRevenue * (quietH / 24) * 100) / 100
+      : null;
+
     return [{
       ruleId: orderFlowSilenceRule.id,
       resourceType: "shop",
       resourceId: "order-flow",
       severity: orderFlowSilenceRule.severity,
+      revenueAtRisk: missed,
       salientState: "quiet",
       details: {
         quiet_hours: Number.isFinite(quietHoursActual) ? quietHoursActual : null,
@@ -63,6 +82,9 @@ export const orderFlowSilenceRule: ExceptionRule = {
         last_order_name: latest?.name ?? null,
         last_order_at: latest?.createdAt ?? null,
         weekly_orders: weeklyCount,
+        expected_daily_revenue: dailyRevenue > 0
+          ? Math.round(dailyRevenue * 100) / 100
+          : null,
       },
     }];
   },

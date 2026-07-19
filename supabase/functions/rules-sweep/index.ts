@@ -89,6 +89,7 @@ Deno.serve(async (req) => {
             resourceType: opened.exception.resource_type,
             resourceId: opened.exception.resource_id,
             details: opened.exception.details,
+            revenueAtRisk: opened.exception.revenue_at_risk,
           });
           if (triage) {
             triages.set(opened.id, triage);

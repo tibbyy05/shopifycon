@@ -82,6 +82,14 @@ export function resourceName(
   return `${resourceType} ${resourceId}`;
 }
 
+/** "$1,847" / "$84.85" — whole dollars once amounts get large. */
+export function formatUsd(n: number): string {
+  return "$" + n.toLocaleString("en-US", {
+    minimumFractionDigits: n >= 100 ? 0 : 2,
+    maximumFractionDigits: n >= 100 ? 0 : 2,
+  });
+}
+
 /** Render a Shopify money object ({ amount, currencyCode }) if present. */
 export function formatMoney(value: unknown): string | null {
   if (!value || typeof value !== "object") return null;

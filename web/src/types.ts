@@ -43,6 +43,7 @@ export interface ExceptionRow {
   status: ExceptionStatus;
   details: Record<string, unknown>;
   triage: { summary: string; recommendation: string } | null;
+  revenue_at_risk: number | null;
   first_seen_at: string;
   resolved_at: string | null;
 }

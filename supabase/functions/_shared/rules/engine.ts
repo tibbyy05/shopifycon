@@ -28,6 +28,7 @@ export interface ExceptionInsert {
   resource_id: string;
   severity: string;
   details: Record<string, unknown>;
+  revenue_at_risk: number | null;
   idempotency_key: string;
 }
 
@@ -54,6 +55,7 @@ export async function persistDetections(
       resource_id: d.resourceId,
       severity: d.severity,
       details: d.details,
+      revenue_at_risk: d.revenueAtRisk ?? null,
       idempotency_key: await hash(idempotencyInput(shopId, d)),
     });
   }

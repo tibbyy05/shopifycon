@@ -4,7 +4,11 @@ import type { RuleContext } from "../supabase/functions/_shared/rules/types.ts";
 
 const NOW = new Date("2026-07-16T12:00:00Z");
 
-const response = (lastOrderAt: string | null, weeklyCount: number) => ({
+const response = (
+  lastOrderAt: string | null,
+  weeklyCount: number,
+  weeklyTotals: number[] = [],
+) => ({
   latest: {
     nodes: lastOrderAt
       ? [{
@@ -15,6 +19,11 @@ const response = (lastOrderAt: string | null, weeklyCount: number) => ({
       : [],
   },
   weekly: { count: weeklyCount },
+  recent: {
+    nodes: weeklyTotals.map((amount) => ({
+      totalPriceSet: { shopMoney: { amount: String(amount) } },
+    })),
+  },
 });
 
 const baseCtx = (
@@ -30,9 +39,9 @@ const baseCtx = (
 
 describe("order-flow-silence rule", () => {
   it("flags a busy store that has gone quiet past the threshold", async () => {
-    // last order 30h ago, 25 orders in the prior week
+    // last order 30h ago, 25 orders / $700 in the prior week
     const graphql = vi.fn().mockResolvedValue(
-      response("2026-07-15T06:00:00Z", 25),
+      response("2026-07-15T06:00:00Z", 25, [300, 250, 150]),
     );
     const detected = await orderFlowSilenceRule.detect(baseCtx(graphql));
     expect(detected).toHaveLength(1);
@@ -48,7 +57,10 @@ describe("order-flow-silence rule", () => {
       threshold_hours: 24,
       last_order_name: "#900",
       weekly_orders: 25,
+      expected_daily_revenue: 100,
     });
+    // $100/day × 30h of silence = $125 missed so far
+    expect(detected[0]!.revenueAtRisk).toBe(125);
   });
 
   it("stays silent while orders are flowing", async () => {

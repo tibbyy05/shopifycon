@@ -60,6 +60,7 @@ export async function generateTriage(input: {
   resourceType: string;
   resourceId: string;
   details: Record<string, unknown>;
+  revenueAtRisk?: number | null;
 }): Promise<Triage | null> {
   if (!env.anthropicApiKey) return null;
 
@@ -90,6 +91,9 @@ export async function generateTriage(input: {
             ``,
             `Store: ${input.shopDomain}`,
             `Severity: ${input.severity}`,
+            ...(input.revenueAtRisk != null && input.revenueAtRisk > 0
+              ? [`Estimated revenue at risk: $${input.revenueAtRisk}`]
+              : []),
             `Resource: ${input.resourceType} ${input.resourceId}`,
             `Detection data: ${JSON.stringify(input.details)}`,
           ].join("\n"),

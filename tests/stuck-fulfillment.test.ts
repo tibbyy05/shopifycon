@@ -49,6 +49,7 @@ describe("stuck-fulfillment rule", () => {
       age_hours: 54,
       threshold_hours: 24,
     });
+    expect(detected[0]!.revenueAtRisk).toBe(80);
   });
 
   it("queries for partial fulfillment with the cutoff", async () => {

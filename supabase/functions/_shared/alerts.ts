@@ -69,8 +69,17 @@ export interface AlertContent {
   resourceType: string;
   resourceId: string;
   details: Record<string, unknown>;
+  revenueAtRisk?: number | null;
   triage?: { summary: string; recommendation: string } | null;
   test?: boolean;
+}
+
+/** "$1,847" / "$84.85" — whole dollars once amounts get large. */
+export function fmtUsd(n: number): string {
+  return "$" + n.toLocaleString("en-US", {
+    minimumFractionDigits: n >= 100 ? 0 : 2,
+    maximumFractionDigits: n >= 100 ? 0 : 2,
+  });
 }
 
 function headline(c: AlertContent): string {
@@ -93,6 +102,9 @@ function headline(c: AlertContent): string {
 function factLines(c: AlertContent): [string, string][] {
   const d = c.details;
   const facts: [string, string][] = [["Store", c.shopDomain]];
+  if (c.revenueAtRisk != null && c.revenueAtRisk > 0) {
+    facts.push(["Revenue at risk", fmtUsd(c.revenueAtRisk)]);
+  }
   if (d.age_hours != null) {
     facts.push(["Age", `${d.age_hours}h (threshold ${d.threshold_hours}h)`]);
   }
@@ -127,7 +139,10 @@ function factLines(c: AlertContent): [string, string][] {
 
 export function emailSubject(c: AlertContent): string {
   const prefix = c.test ? "[TEST] " : "";
-  return `${prefix}[${c.severity.toUpperCase()}] ${headline(c)} — ${c.shopDomain}`;
+  const money = c.revenueAtRisk != null && c.revenueAtRisk > 0
+    ? `${fmtUsd(c.revenueAtRisk)} at risk · `
+    : "";
+  return `${prefix}[${c.severity.toUpperCase()}] ${money}${headline(c)} — ${c.shopDomain}`;
 }
 
 export function emailText(c: AlertContent): string {
@@ -308,6 +323,7 @@ export async function dispatchAlert(
     resourceType: exc.resource_type,
     resourceId: exc.resource_id,
     details: exc.details,
+    revenueAtRisk: exc.revenue_at_risk,
     triage,
   };
 

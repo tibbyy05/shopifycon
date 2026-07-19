@@ -83,6 +83,7 @@ Deno.serve(async (req) => {
       financial_status: "PAID",
       fulfillment_status: "UNFULFILLED",
     },
+    revenueAtRisk: 129,
     triage: {
       summary:
         "Sample AI triage: order #TEST was paid 72 hours ago and fulfillment never started — 24 hours past your threshold. This usually means an item is out of stock or the fulfillment queue is stalled.",
