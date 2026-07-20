@@ -8,7 +8,10 @@ application_url = "https://meuqvuszbrmxjqamlctw.supabase.co/functions/v1/shopify
 embedded = false
 
 [access_scopes]
-scopes = "read_orders,read_fulfillments,read_products,read_inventory"
+# write_orders/write_products power one-click fixes (per-action approval,
+# always audited); read_locations names locations in inventory rules;
+# read_checkouts enables abandoned-checkout detection.
+scopes = "read_orders,read_fulfillments,read_products,read_inventory,read_locations,read_checkouts,write_orders,write_products"
 use_legacy_install_flow = true
 
 [auth]
