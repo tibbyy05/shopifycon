@@ -12,7 +12,13 @@ export interface GraphqlClient {
 
 export class ShopifyGraphqlError extends Error {
   constructor(message: string, public errors: unknown) {
-    super(message);
+    // Carry the GraphQL error detail in the message so logs and sweep
+    // summaries are diagnosable without a debugger.
+    super(
+      errors
+        ? `${message}: ${JSON.stringify(errors).slice(0, 400)}`
+        : message,
+    );
   }
 }
 

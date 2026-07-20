@@ -47,6 +47,16 @@ const RULE_CONTEXT: Record<string, string> = {
     "Rule: a tracked variant on an active product is at or below its stock threshold; negative means oversold. Common causes: missed restock, double-selling across channels, inventory sync failures.",
   "stuck-fulfillment":
     "Rule: a paid order was partially fulfilled and then stalled past the time limit. Common causes: split shipments where one item is out of stock, carrier pickup failures, or a fulfillment service processing only part of the order.",
+  "payment-pending":
+    "Rule: an open order's payment is pending/authorized past the time limit, or already expired. Common causes: manual-capture settings with nobody capturing, gateway holds, bank transfers never completed. Expired authorizations mean the money is lost unless the customer is re-charged.",
+  "shipping-delay":
+    "Rule: a shipment left more than the threshold days ago with no delivery confirmation. Common causes: lost packages, carrier delays, wrong address, or missing tracking scans. Risk: refunds, chargebacks, and support load.",
+  "refund-spike":
+    "Rule: refund volume in the last 24h is well above this store's own baseline. Common causes: a defective product batch, a fulfillment error affecting many orders, a pricing mistake, or fraud. Look for what the refunded orders share.",
+  "inventory-mismatch":
+    "Rule: at a location, more units are committed to open orders than are available. Those sales physically can't ship. Common causes: overselling across channels, inventory adjustments after sales, sync failures.",
+  "discount-spike":
+    "Rule: multiple orders in 24h were sold at or above the discount-percentage threshold. Common causes: a leaked or stacked discount code, a misconfigured automatic discount, or abuse of a generous code.",
 };
 
 /**

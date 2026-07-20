@@ -22,6 +22,11 @@ const RULE_LABELS: Record<string, string> = {
   "order-flow-silence": "Order flow silence",
   "inventory-low": "Inventory low or oversold",
   "stuck-fulfillment": "Stuck partial fulfillment",
+  "payment-pending": "Payment pending or expired",
+  "shipping-delay": "Shipment stuck in transit",
+  "refund-spike": "Refund spike",
+  "inventory-mismatch": "Committed exceeds available stock",
+  "discount-spike": "Unusual discounting",
 };
 const ruleLabel = (id: string) => RULE_LABELS[id] ?? id;
 
@@ -87,7 +92,8 @@ function headline(c: AlertContent): string {
   if (c.ruleId === "order-flow-silence") {
     return `No orders for ${d.quiet_hours ?? "?"}h`;
   }
-  if (c.ruleId === "inventory-low") {
+  if (typeof d.headline === "string" && d.headline) return d.headline;
+  if (typeof d.product_title === "string") {
     const name = [d.product_title, d.variant_title]
       .filter((s) => typeof s === "string" && s && s !== "Default Title")
       .join(" / ");

@@ -65,6 +65,72 @@ export const RULE_META: RuleMeta[] = [
       },
     ],
   },
+  {
+    id: "payment-pending",
+    name: "Payment pending or expired",
+    description:
+      "An open order's payment is stuck pending or authorized past the time limit — or the authorization already expired, which loses the money unless the customer is re-charged.",
+    severity: "high",
+    thresholds: [
+      {
+        key: "max_payment_pending_hours",
+        label: "Max pending (hours)",
+        defaultValue: 24,
+      },
+    ],
+  },
+  {
+    id: "shipping-delay",
+    name: "Shipment stuck in transit",
+    description:
+      "A shipment left more than the threshold days ago with no delivery confirmation — lost packages and carrier stalls, caught before the customer complains.",
+    severity: "medium",
+    thresholds: [
+      { key: "max_transit_days", label: "Max transit (days)", defaultValue: 7 },
+    ],
+  },
+  {
+    id: "refund-spike",
+    name: "Refund spike",
+    description:
+      "Refund volume in the last 24 hours is abnormally high versus this store's own weekly baseline — defects, fulfillment errors, or fraud, hours old instead of weeks.",
+    severity: "high",
+    thresholds: [
+      { key: "min_refunds_24h", label: "Min refunds (24h)", defaultValue: 3 },
+      {
+        key: "spike_multiplier",
+        label: "Spike multiplier",
+        defaultValue: 3,
+      },
+    ],
+  },
+  {
+    id: "inventory-mismatch",
+    name: "Committed exceeds available stock",
+    description:
+      "A location has more units committed to open orders than it actually holds — promised sales that physically can't ship.",
+    severity: "high",
+    thresholds: [],
+  },
+  {
+    id: "discount-spike",
+    name: "Unusual discounting",
+    description:
+      "Multiple orders in 24 hours sold at or above the discount threshold — leaked codes and misconfigured automatic discounts eating margin.",
+    severity: "medium",
+    thresholds: [
+      {
+        key: "max_discount_pct",
+        label: "Discount threshold (%)",
+        defaultValue: 50,
+      },
+      {
+        key: "min_discounted_orders",
+        label: "Min orders (24h)",
+        defaultValue: 3,
+      },
+    ],
+  },
 ];
 
 const LABELS = new Map(RULE_META.map((r) => [r.id, r.name]));

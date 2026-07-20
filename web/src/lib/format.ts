@@ -59,6 +59,26 @@ export function exceptionSummary(
       return details.available != null
         ? `${details.available} available${details.sku ? ` · ${details.sku}` : ""}`
         : "";
+    case "payment-pending":
+      return typeof details.financial_status === "string"
+        ? `${details.financial_status.toLowerCase()} for ${details.age_hours}h`
+        : "";
+    case "shipping-delay":
+      return details.in_transit_days != null
+        ? `in transit ${details.in_transit_days}d (threshold ${details.threshold_days}d)`
+        : "";
+    case "refund-spike":
+      return details.refunds_24h != null
+        ? `${details.refunds_24h} refunds in 24h (baseline ${details.daily_baseline}/day)`
+        : "";
+    case "inventory-mismatch":
+      return details.committed != null
+        ? `${details.committed} committed vs ${details.available} available`
+        : "";
+    case "discount-spike":
+      return details.discounted_orders != null
+        ? `${details.discounted_orders} orders ≥${details.threshold_pct}% off in 24h`
+        : "";
     default:
       return "";
   }
